@@ -6,38 +6,53 @@ import javafx.scene.control.*;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class Election extends Application {
     private ComboBox<String> candidateDropdown;
     private Label votes;
     private Label errorMessage;
+    private Map<String, Integer> voteCounts;
+    private Label winnerLabel;
 
     @Override
     public void start(Stage stage) throws Exception {
-        candidateDropdown = new ComboBox<String>();
-        candidateDropdown.getItems().addAll("Alice", "Bob", "Charlie");
+        // Initialize vote counts
+        voteCounts = new HashMap<>();
+        voteCounts.put("Liberal", 0);
+        voteCounts.put("Conservative", 0);
+        voteCounts.put("NDP", 0);
+        voteCounts.put("Green Party", 0);
+
+        candidateDropdown = new ComboBox<>();
+        candidateDropdown.getItems().addAll("Liberal", "Conservative", "NDP", "Green Party");
         candidateDropdown.setPromptText("Select a candidate:");
 
-        Button vote = new Button("Vote");
-        votes = new Label();
+        Button voteButton = new Button("Vote");
+        Button showWinnerButton = new Button("Show Winner");
+
+        votes = new Label(updateVoteText());
         errorMessage = new Label();
+        winnerLabel = new Label();
 
-        vote.setOnAction(e -> handleVote());
+        voteButton.setOnAction(e -> handleVote());
+        showWinnerButton.setOnAction(e -> showWinner());
 
-        VBox layout = new VBox(10, candidateDropdown, vote, votes, errorMessage);
+        VBox layout = new VBox(10, candidateDropdown, voteButton, showWinnerButton, votes, errorMessage, winnerLabel);
         layout.setStyle("-fx-padding: 20; -fx-alignment: center;");
 
-        Scene scene = new Scene(layout, 300, 200);
-        Stage primaryStage = new Stage();
-        primaryStage.setTitle("Student Voting App");
-        primaryStage.setScene(scene);
-        primaryStage.show();
+        Scene scene = new Scene(layout, 300, 300);
+        stage.setTitle("Student Voting App");
+        stage.setScene(scene);
+        stage.show();
     }
 
     private void handleVote() {
         String selectedCandidate = candidateDropdown.getValue();
 
         if (selectedCandidate == null) {
-            errorMessage.setText("Choose a candidate!");
+            errorMessage.setText("❗ Please choose a candidate!");
             return;
         }
 
@@ -48,14 +63,50 @@ public class Election extends Application {
 
         confirm.showAndWait().ifPresent(response -> {
             if (response == ButtonType.OK) {
+                // Increment vote count
+                voteCounts.put(selectedCandidate, voteCounts.get(selectedCandidate) + 1);
+
                 candidateDropdown.setValue(null);
-                votes.setText("You voted for: " + selectedCandidate);
+                votes.setText(updateVoteText());
                 errorMessage.setText("");
+                winnerLabel.setText(""); // Clear previous winner on new vote
             }
         });
     }
 
+    private String updateVoteText() {
+        return String.format("Votes:\nLiberal: %d\nConservative: %d\nNDP: %d\nGreen Party: %d",
+                voteCounts.get("Liberal"),
+                voteCounts.get("Conservative"),
+                voteCounts.get("NDP"),
+                voteCounts.get("Green Party"));
+    }
+
+
+    private void showWinner() {
+        int maxVotes = -1;
+        String winner = "It's a tie!";
+        boolean tie = false;
+
+        for (Map.Entry<String, Integer> entry : voteCounts.entrySet()) {
+            int count = entry.getValue();
+            if (count > maxVotes) {
+                maxVotes = count;
+                winner = entry.getKey();
+                tie = false;
+            } else if (count == maxVotes) {
+                tie = true;
+            }
+        }
+
+        if (tie) {
+            winnerLabel.setText("🏆 It's a tie!");
+        } else {
+            winnerLabel.setText("🏆 Winner: " + winner);
+        }
+    }
+
     public static void main(String[] args) {
-       launch(args);
+        launch(args);
     }
 }
